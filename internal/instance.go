@@ -123,6 +123,11 @@ type Instance struct {
 
 	// hostsRegistered tracks whether hosts have been registered from the NDF (0 = not yet, 1 = done)
 	hostsRegistered uint32
+
+	// Cached NDF hashes for comparison during polling (managed at server level)
+	cachedFullNdfHash    []byte
+	cachedPartialNdfHash []byte
+	cachedHashMux        sync.RWMutex
 }
 
 // CreateServerInstance creates a server instance. To actually kick off the server,
@@ -259,6 +264,15 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 			fullNdfData = nil
 		} else {
 			jww.INFO.Printf("Successfully loaded and unmarshaled full NDF from cache")
+
+			// Try to load the cached hash
+			cachedFullHash, hashErr := storage.LoadNdfHashFromCache(fullNdfCachePath, nodeSecret)
+			if hashErr == nil && len(cachedFullHash) > 0 {
+				instance.SetCachedFullNdfHash(cachedFullHash)
+				jww.INFO.Printf("Loaded cached full NDF hash: %s", base64.StdEncoding.EncodeToString(cachedFullHash))
+			} else {
+				jww.DEBUG.Printf("No cached full NDF hash available: %+v", hashErr)
+			}
 		}
 	} else if err != nil {
 		jww.DEBUG.Printf("No cached full NDF available: %+v", err)
@@ -275,6 +289,15 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 			partialNdfData = nil
 		} else {
 			jww.INFO.Printf("Successfully loaded and unmarshaled partial NDF from cache")
+
+			// Try to load the cached hash
+			cachedPartialHash, hashErr := storage.LoadNdfHashFromCache(partialNdfCachePath, nodeSecret)
+			if hashErr == nil && len(cachedPartialHash) > 0 {
+				instance.SetCachedPartialNdfHash(cachedPartialHash)
+				jww.INFO.Printf("Loaded cached partial NDF hash: %s", base64.StdEncoding.EncodeToString(cachedPartialHash))
+			} else {
+				jww.DEBUG.Printf("No cached partial NDF hash available: %+v", hashErr)
+			}
 		}
 	} else if err != nil {
 		jww.DEBUG.Printf("No cached partial NDF available: %+v", err)
@@ -329,42 +352,13 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 			len(cachedFullNdf.Nodes))
 	}
 
-	// Populate hash fields for cached NDFs to avoid unnecessary re-downloads
-	if cachedFullNdf != nil && len(fullNdfData) > 0 {
-		err = instance.consensus.SetFullNdfHashFromBytes(fullNdfData)
-		if err != nil {
-			jww.WARN.Printf("Failed to set full NDF hash from cached bytes: %+v", err)
-		} else {
-			jww.DEBUG.Printf("Successfully populated full NDF hash from cached bytes")
-		}
-	}
-
-	if cachedPartialNdf != nil && len(partialNdfData) > 0 {
-		err = instance.consensus.SetPartialNdfHashFromBytes(partialNdfData)
-		if err != nil {
-			jww.WARN.Printf("Failed to set partial NDF hash from cached bytes: %+v", err)
-		} else {
-			jww.DEBUG.Printf("Successfully populated partial NDF hash from cached bytes")
-		}
-	}
-
-	// NOTE ON NDF HASH INITIALIZATION:
-	// The hash fields are now properly populated when loading from cache, which prevents
-	// unnecessary re-downloads on the first poll after restart. Previously, these fields
-	// remained uninitialized (zeros) because:
-	// 1. The wrapper is created with ds.NewNdf() which calls GenerateNDFHash(nil), returning zeros
-	// 2. We cannot call Update() to set the hash because it requires RSA signature verification
-	// 3. We don't have the permissioning public key available at startup
-	//
-	// This means the first poll after restart will see hash mismatch (zeros vs actual) and
-	// will re-download the NDF from permissioning. However, this one-time download cost is
-	// acceptable because:
-	// - The downloaded NDF will be cached and verified with proper hash
-	// - All subsequent polls will correctly use the cache without re-downloading
-	// - This is still vastly better than downloading on every poll (which was the original problem)
-	//
-	// The hash will be properly set after the first poll's UpdateFullNdf/UpdatePartialNdf
-	// calls in permissioning.UpdateNDf(), and then cached for the next restart.
+	// SELF-MANAGED HASH TRACKING:
+	// Cached NDF hashes have been loaded separately into instance fields above.
+	// We don't need to populate the comms library's internal hash at startup.
+	// When polling, we send our cached hashes to permissioning for comparison.
+	// When a new NDF is downloaded, UpdateFullNdf/UpdatePartialNdf is called in
+	// permissioning.go where signature verification succeeds, and we extract and
+	// cache the newly computed hash for future polls.
 
 	// Handle overriding local IP
 	if instance.GetDefinition().OverrideInternalIP != "" {
@@ -972,4 +966,32 @@ func (i *Instance) IsHostsRegistered() bool {
 // SetHostsRegistered sets the hosts registered flag to true. Returns true if it was previously false.
 func (i *Instance) SetHostsRegistered() bool {
 	return atomic.CompareAndSwapUint32(&i.hostsRegistered, 0, 1)
+}
+
+// GetCachedFullNdfHash returns the cached full NDF hash for poll comparison
+func (i *Instance) GetCachedFullNdfHash() []byte {
+	i.cachedHashMux.RLock()
+	defer i.cachedHashMux.RUnlock()
+	return i.cachedFullNdfHash
+}
+
+// SetCachedFullNdfHash sets the cached full NDF hash
+func (i *Instance) SetCachedFullNdfHash(hash []byte) {
+	i.cachedHashMux.Lock()
+	defer i.cachedHashMux.Unlock()
+	i.cachedFullNdfHash = hash
+}
+
+// GetCachedPartialNdfHash returns the cached partial NDF hash for poll comparison
+func (i *Instance) GetCachedPartialNdfHash() []byte {
+	i.cachedHashMux.RLock()
+	defer i.cachedHashMux.RUnlock()
+	return i.cachedPartialNdfHash
+}
+
+// SetCachedPartialNdfHash sets the cached partial NDF hash
+func (i *Instance) SetCachedPartialNdfHash(hash []byte) {
+	i.cachedHashMux.Lock()
+	defer i.cachedHashMux.Unlock()
+	i.cachedPartialNdfHash = hash
 }

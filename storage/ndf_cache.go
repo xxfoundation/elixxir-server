@@ -18,6 +18,7 @@ import (
 )
 
 // SaveNdfToCache saves NDF data to disk cache atomically using temp file + rename pattern
+// Also saves the hash in a separate file for cache validation
 func SaveNdfToCache(ndfData []byte, cachePath string, key []byte, rng csprng.Source) error {
 	// Extract directory from cache path
 	dir := filepath.Dir(cachePath)
@@ -59,6 +60,36 @@ func SaveNdfToCache(ndfData []byte, cachePath string, key []byte, rng csprng.Sou
 	return nil
 }
 
+// SaveNdfHashToCache saves the NDF hash to a separate cache file
+func SaveNdfHashToCache(hash []byte, cachePath string, key []byte, rng csprng.Source) error {
+	hashPath := cachePath + ".hash"
+
+	// Encrypt the hash data
+	encryptedHash, err := chacha.Encrypt(key, hash, rng)
+	if err != nil {
+		jww.WARN.Printf("Failed to encrypt NDF hash: %+v", err)
+		return errors.WithMessage(err, "failed to encrypt NDF hash")
+	}
+
+	// Write hash to file atomically
+	tmpPath := hashPath + ".tmp"
+	err = os.WriteFile(tmpPath, encryptedHash, 0644)
+	if err != nil {
+		jww.WARN.Printf("Failed to write hash temp file: %+v", err)
+		return errors.WithMessage(err, "failed to write temp hash file")
+	}
+
+	err = os.Rename(tmpPath, hashPath)
+	if err != nil {
+		os.Remove(tmpPath)
+		jww.WARN.Printf("Failed to rename hash temp file: %+v", err)
+		return errors.WithMessage(err, "failed to atomically rename hash file")
+	}
+
+	jww.DEBUG.Printf("Successfully cached NDF hash to %s", hashPath)
+	return nil
+}
+
 // LoadNdfFromCache loads NDF data from disk cache
 func LoadNdfFromCache(cachePath string, key []byte) ([]byte, error) {
 	// Check if file exists
@@ -96,4 +127,37 @@ func LoadNdfFromCache(cachePath string, key []byte) ([]byte, error) {
 
 	jww.INFO.Printf("Successfully loaded NDF from cache: %s (%d bytes)", cachePath, len(decryptedData))
 	return decryptedData, nil
+}
+
+// LoadNdfHashFromCache loads the NDF hash from the separate cache file
+func LoadNdfHashFromCache(cachePath string, key []byte) ([]byte, error) {
+	hashPath := cachePath + ".hash"
+
+	// Check if hash file exists
+	_, err := os.Stat(hashPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			jww.DEBUG.Printf("Hash cache file does not exist: %s", hashPath)
+		} else {
+			jww.DEBUG.Printf("Hash cache miss for %s: %+v", hashPath, err)
+		}
+		return nil, err
+	}
+
+	// Read hash file
+	data, err := os.ReadFile(hashPath)
+	if err != nil {
+		jww.DEBUG.Printf("Failed to read hash cache file: %+v", err)
+		return nil, errors.WithMessage(err, "failed to read hash cache file")
+	}
+
+	// Decrypt the hash
+	decryptedHash, err := chacha.Decrypt(key, data)
+	if err != nil {
+		jww.DEBUG.Printf("Failed to decrypt hash cache file: %+v", err)
+		return nil, errors.WithMessage(err, "failed to decrypt hash cache file")
+	}
+
+	jww.DEBUG.Printf("Successfully loaded NDF hash from cache: %s", hashPath)
+	return decryptedHash, nil
 }
