@@ -307,13 +307,8 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	fullNdfToUse := def.FullNDF
 	if cachedFullNdf != nil {
 		fullNdfToUse = cachedFullNdf
-		// Log the hash of the cached full NDF (computed from raw bytes)
-		h, _ := hash.NewCMixHash()
-		h.Write(fullNdfData)
-		fullHash := h.Sum(nil)
-		jww.INFO.Printf("Cached full NDF hash: %s",
-			base64.StdEncoding.EncodeToString(fullHash))
-		jww.INFO.Printf("Using cached full NDF for network instance")
+		jww.INFO.Printf("Using cached full NDF for network instance (%d nodes)",
+			len(cachedFullNdf.Nodes))
 	} else {
 		jww.DEBUG.Printf("Using definition full NDF for network instance")
 	}
@@ -321,12 +316,6 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	partialNdfToUse := def.PartialNDF
 	if cachedPartialNdf != nil {
 		partialNdfToUse = cachedPartialNdf
-		// Log the hash of the cached partial NDF (computed from raw bytes)
-		h, _ := hash.NewCMixHash()
-		h.Write(partialNdfData)
-		partialHash := h.Sum(nil)
-		jww.INFO.Printf("Cached partial NDF hash: %s",
-			base64.StdEncoding.EncodeToString(partialHash))
 		jww.INFO.Printf("Using cached partial NDF for network instance")
 	} else {
 		jww.DEBUG.Printf("Using definition partial NDF for network instance")
