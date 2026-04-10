@@ -452,32 +452,9 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 		// Extract the hash from the updated NDF (comms computes it during UpdateFullNdf)
 		newFullHash := instance.GetNetworkStatus().GetFullNdf().GetHash()
 
-		// Always update in-memory hash after successful NDF update so polls
-		// send the correct hash. Disk cache is best-effort below.
-		instance.SetCachedFullNdfHash(newFullHash)
-
-		// Cache the full NDF to disk
-		nodeSecret, err := instance.GetSecretManager().GetSecret(0)
-		if err != nil {
-			jww.WARN.Printf("Failed to get node secret for NDF caching: %+v", err)
-		} else {
-			cachePath := filepath.Join(instance.GetDefinition().CacheDir, "full_ndf.json")
-			stream := instance.GetRngStreamGen().GetStream()
-			err = storage.SaveNdfToCache(permissioningResponse.FullNDF.Ndf,
-				cachePath, nodeSecret.Bytes(), stream)
-			stream.Close()
-			if err != nil {
-				jww.WARN.Printf("Failed to cache full NDF: %+v", err)
-			} else {
-				hashStream := instance.GetRngStreamGen().GetStream()
-				hashErr := storage.SaveNdfHashToCache(newFullHash, cachePath,
-					nodeSecret.Bytes(), hashStream)
-				hashStream.Close()
-				if hashErr != nil {
-					jww.WARN.Printf("Failed to cache full NDF hash: %+v", hashErr)
-				}
-			}
-		}
+		cachePath := filepath.Join(instance.GetDefinition().CacheDir, "full_ndf.json")
+		cacheNdfData(permissioningResponse.FullNDF.Ndf, newFullHash,
+			cachePath, instance, instance.SetCachedFullNdfHash)
 
 		// Save the list of node IP addresses to file
 		err = SaveNodeIpList(instance.GetNetworkStatus().GetFullNdf().Get(),
@@ -511,31 +488,9 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 		// Extract the hash from the updated NDF (comms computes it during UpdatePartialNdf)
 		newPartialHash := instance.GetNetworkStatus().GetPartialNdf().GetHash()
 
-		// Always update in-memory hash after successful NDF update
-		instance.SetCachedPartialNdfHash(newPartialHash)
-
-		// Cache the partial NDF to disk
-		nodeSecret, err := instance.GetSecretManager().GetSecret(0)
-		if err != nil {
-			jww.WARN.Printf("Failed to get node secret for NDF caching: %+v", err)
-		} else {
-			cachePath := filepath.Join(instance.GetDefinition().CacheDir, "partial_ndf.json")
-			stream := instance.GetRngStreamGen().GetStream()
-			err = storage.SaveNdfToCache(permissioningResponse.PartialNDF.Ndf,
-				cachePath, nodeSecret.Bytes(), stream)
-			stream.Close()
-			if err != nil {
-				jww.WARN.Printf("Failed to cache partial NDF: %+v", err)
-			} else {
-				hashStream := instance.GetRngStreamGen().GetStream()
-				hashErr := storage.SaveNdfHashToCache(newPartialHash, cachePath,
-					nodeSecret.Bytes(), hashStream)
-				hashStream.Close()
-				if hashErr != nil {
-					jww.WARN.Printf("Failed to cache partial NDF hash: %+v", hashErr)
-				}
-			}
-		}
+		cachePath := filepath.Join(instance.GetDefinition().CacheDir, "partial_ndf.json")
+		cacheNdfData(permissioningResponse.PartialNDF.Ndf, newPartialHash,
+			cachePath, instance, instance.SetCachedPartialNdfHash)
 	} else {
 		// No new partial NDF sent - cached hash matched current NDF
 		if instance.GetNetworkStatus().GetPartialNdf() != nil {
@@ -602,6 +557,42 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 
 	return nil
 
+}
+
+// cacheNdfData updates the in-memory cached hash and best-effort writes the
+// NDF data and hash to disk. All disk failures are non-fatal.
+func cacheNdfData(ndfBytes, ndfHash []byte, cachePath string,
+	instance *internal.Instance, setHash func([]byte)) {
+
+	// Always update in-memory hash so polls send the correct value
+	setHash(ndfHash)
+
+	if instance.GetDefinition().CacheDir == "" {
+		return
+	}
+
+	nodeSecret, err := instance.GetSecretManager().GetSecret(0)
+	if err != nil {
+		jww.WARN.Printf("Failed to get node secret for NDF caching: %+v", err)
+		return
+	}
+
+	stream := instance.GetRngStreamGen().GetStream()
+	err = storage.SaveNdfToCache(ndfBytes, cachePath,
+		nodeSecret.Bytes(), stream)
+	stream.Close()
+	if err != nil {
+		jww.WARN.Printf("Failed to cache NDF to %s: %+v", cachePath, err)
+		return
+	}
+
+	hashStream := instance.GetRngStreamGen().GetStream()
+	hashErr := storage.SaveNdfHashToCache(ndfHash, cachePath,
+		nodeSecret.Bytes(), hashStream)
+	hashStream.Close()
+	if hashErr != nil {
+		jww.WARN.Printf("Failed to cache NDF hash: %+v", hashErr)
+	}
 }
 
 // FindSelfInNdf parses the ndf to determine if we exist in the ndf.
