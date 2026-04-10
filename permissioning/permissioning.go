@@ -180,11 +180,11 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 	// If no cached hashes are available, fall back to comms hashes
 	if len(fullNdfHash) == 0 && instance.GetNetworkStatus().GetFullNdf() != nil {
 		fullNdfHash = instance.GetNetworkStatus().GetFullNdf().GetHash()
-		jww.DEBUG.Printf("No cached full NDF hash, using comms hash for poll")
+		jww.WARN.Printf("No cached full NDF hash, falling back to comms hash")
 	}
 	if len(partialNdfHash) == 0 && instance.GetNetworkStatus().GetPartialNdf() != nil {
 		partialNdfHash = instance.GetNetworkStatus().GetPartialNdf().GetHash()
-		jww.DEBUG.Printf("No cached partial NDF hash, using comms hash for poll")
+		jww.WARN.Printf("No cached partial NDF hash, falling back to comms hash")
 	}
 
 	// Get the update id and activity of the state machine
