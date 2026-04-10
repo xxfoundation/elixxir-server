@@ -95,7 +95,7 @@ func (*MockPhase) GetTimeout() time.Duration                    { return 5 * tim
 func (*MockPhase) Cmp(phase.Phase) bool                         { return false }
 func (*MockPhase) String() string                               { return "" }
 func (*MockPhase) Measure(string)                               { return }
-func (*MockPhase) GetMeasure() measure.Metrics                  { return *new(measure.Metrics) }
+func (*MockPhase) GetMeasure() *measure.Metrics                 { return &measure.Metrics{} }
 
 func TestResourceQueue_DenotePhaseCompletion(t *testing.T) {
 	q := initQueue()

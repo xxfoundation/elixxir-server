@@ -50,7 +50,7 @@ func NewRoundMetrics(roundId id.Round, batchSize uint32) RoundMetrics {
 }
 
 // AddPhase adds a phase and its metrics to the RoundMetrics object.
-func (rm *RoundMetrics) AddPhase(name string, metrics Metrics) {
+func (rm *RoundMetrics) AddPhase(name string, metrics *Metrics) {
 	metrics.NodeId = &rm.NodeID
 	newPhaseMetric := phaseMetric{name, metrics}
 

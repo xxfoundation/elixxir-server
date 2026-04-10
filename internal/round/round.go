@@ -331,6 +331,7 @@ func (r *Round) GetMeasurements(nid *id.ID, numNodes, index int,
 		phaseMeasure := ph.GetMeasure()
 		phaseMeasure.NodeId = nid
 		rm.AddPhase(phaseName, phaseMeasure)
+
 	}
 
 	// Set end time

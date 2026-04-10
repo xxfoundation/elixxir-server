@@ -48,9 +48,9 @@ func TestRoundMetrics_AddPhase(t *testing.T) {
 	metricC := Metric{"another_tag2", time.Unix(1, 2)}
 	metricD := Metric{}
 
-	metricsA := Metrics{Events: []Metric{metricA, metricB, metricC, metricD}, NodeId: id.NewIdFromBytes([]byte{}, t)}
-	metricsB := Metrics{Events: []Metric{metricA, metricB, metricD, metricC}, NodeId: id.NewIdFromBytes([]byte{}, t)}
-	metricsC := Metrics{Events: []Metric{}, NodeId: id.NewIdFromBytes([]byte{}, t)}
+	metricsA := &Metrics{Events: []Metric{metricA, metricB, metricC, metricD}, NodeId: id.NewIdFromBytes([]byte{}, t)}
+	metricsB := &Metrics{Events: []Metric{metricA, metricB, metricD, metricC}, NodeId: id.NewIdFromBytes([]byte{}, t)}
+	metricsC := &Metrics{Events: []Metric{}, NodeId: id.NewIdFromBytes([]byte{}, t)}
 
 	phaseMetricA := phaseMetric{"PhaseName1", metricsA}
 	phaseMetricB := phaseMetric{"PhaseName1", metricsB}
@@ -63,8 +63,8 @@ func TestRoundMetrics_AddPhase(t *testing.T) {
 	rm := NewRoundMetrics(42, 55)
 
 	// Add all phases to the RoundMetrics PhaseMetrics
-	for _, pm := range pmArr {
-		rm.AddPhase(pm.PhaseName, pm.Metrics)
+	for i := range pmArr {
+		rm.AddPhase(pmArr[i].PhaseName, pmArr[i].Metrics)
 	}
 
 	// Check if the PhaseMetrics matches the expected array
