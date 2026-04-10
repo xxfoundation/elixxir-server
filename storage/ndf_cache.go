@@ -51,7 +51,10 @@ func SaveNdfToCache(ndfData []byte, cachePath string, key []byte, rng csprng.Sou
 	err = os.Rename(tmpPath, cachePath)
 	if err != nil {
 		// Clean up temp file on failure
-		os.Remove(tmpPath)
+		if removeErr := os.Remove(tmpPath); removeErr != nil {
+			jww.WARN.Printf("Failed to clean up temp file %s: %+v",
+				tmpPath, removeErr)
+		}
 		jww.WARN.Printf("Failed to rename temp file to cache path: %+v", err)
 		return errors.WithMessage(err, "failed to atomically rename cache file")
 	}
@@ -81,7 +84,10 @@ func SaveNdfHashToCache(hash []byte, cachePath string, key []byte, rng csprng.So
 
 	err = os.Rename(tmpPath, hashPath)
 	if err != nil {
-		os.Remove(tmpPath)
+		if removeErr := os.Remove(tmpPath); removeErr != nil {
+			jww.WARN.Printf("Failed to clean up temp file %s: %+v",
+				tmpPath, removeErr)
+		}
 		jww.WARN.Printf("Failed to rename hash temp file: %+v", err)
 		return errors.WithMessage(err, "failed to atomically rename hash file")
 	}
