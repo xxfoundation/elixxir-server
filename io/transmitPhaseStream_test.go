@@ -30,17 +30,17 @@ import (
 var mockIndex int
 
 type MockTransmitStream struct {
-	batch mixmessages.Batch
+	batch *mixmessages.Batch
 }
 
-func (stream MockTransmitStream) SendAndClose(*messages.Ack) error {
+func (stream *MockTransmitStream) SendAndClose(*messages.Ack) error {
 	if len(stream.batch.Slots) == mockIndex {
 		return nil
 	}
 	return errors.New("stream closed without all slots being received")
 }
 
-func (stream MockTransmitStream) Recv() (*mixmessages.Slot, error) {
+func (stream *MockTransmitStream) Recv() (*mixmessages.Slot, error) {
 	if mockIndex >= len(stream.batch.Slots) {
 		return nil, io.EOF
 	}
@@ -49,26 +49,26 @@ func (stream MockTransmitStream) Recv() (*mixmessages.Slot, error) {
 	return slot, nil
 }
 
-func (MockTransmitStream) SetHeader(metadata.MD) error {
+func (*MockTransmitStream) SetHeader(metadata.MD) error {
 	return nil
 }
 
-func (MockTransmitStream) SendHeader(metadata.MD) error {
+func (*MockTransmitStream) SendHeader(metadata.MD) error {
 	return nil
 }
 
-func (MockTransmitStream) SetTrailer(metadata.MD) {
+func (*MockTransmitStream) SetTrailer(metadata.MD) {
 }
 
-func (stream MockTransmitStream) Context() context.Context {
+func (*MockTransmitStream) Context() context.Context {
 	return nil
 }
 
-func (MockTransmitStream) SendMsg(m interface{}) error {
+func (*MockTransmitStream) SendMsg(m interface{}) error {
 	return nil
 }
 
-func (MockTransmitStream) RecvMsg(m interface{}) error {
+func (*MockTransmitStream) RecvMsg(m interface{}) error {
 	return nil
 }
 
@@ -91,7 +91,7 @@ func TestStreamPostPhase(t *testing.T) {
 	}
 
 	// receive the mockBatch into the mock stream 'buffer'
-	mockStreamServer := MockTransmitStream{batch: mockBatch}
+	mockStreamServer := &MockTransmitStream{batch: &mockBatch}
 
 	_, err := StreamPostPhase(mockPhase, uint32(batchSize), mockStreamServer)
 

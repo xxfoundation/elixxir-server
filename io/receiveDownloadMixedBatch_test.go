@@ -47,7 +47,7 @@ func TestStartDownloadMixedBatch(t *testing.T) {
 	mockStream := MockStreamMixedBatchServer{}
 
 	ready := &pb.BatchReady{RoundId: uint64(rid)}
-	err = DownloadMixedBatch(&instance, ready, mockStream, auth)
+	err = DownloadMixedBatch(instance, ready, mockStream, auth)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -98,8 +98,8 @@ func (MockStreamMixedBatchServer) SetTrailer(metadata.MD) {
 func (stream MockStreamMixedBatchServer) Context() context.Context {
 
 	// Create an incoming context from batch info metadata
-	ctx, _ := context.WithCancel(context.Background())
-
+	ctx, cancel := context.WithCancel(context.Background())
+	_ = cancel // cancel is not used here; context is short-lived in test
 	return ctx
 }
 

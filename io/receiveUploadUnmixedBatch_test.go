@@ -76,7 +76,8 @@ func (stream MockStreamUnmixedBatchServer) Context() context.Context {
 	}
 
 	// Create an incoming context from batch info metadata
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	m := make(map[string]string)
 	m[mixmessages.UnmixedBatchHeader] = base64.StdEncoding.EncodeToString([]byte(mockBatchInfo.String()))

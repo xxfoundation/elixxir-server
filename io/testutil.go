@@ -241,7 +241,7 @@ func makeMultiInstanceGroup() *cyclic.Group {
 		large.NewInt(2))
 }
 
-func PushNRoundUpdates(n int, instance internal.Instance, key *rsa.PrivateKey, t *testing.T) {
+func PushNRoundUpdates(n int, instance *internal.Instance, key *rsa.PrivateKey, t *testing.T) {
 
 	for i := 1; i < n+1; i++ {
 		newRound := &mixmessages.RoundInfo{
@@ -369,7 +369,8 @@ func (stream MockStreamPostPhaseServer) Context() context.Context {
 	}
 
 	// Create an incoming context from batch info metadata
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	m := make(map[string]string)
 	m["batchinfo"] = base64.StdEncoding.EncodeToString([]byte(mockBatchInfo.String()))
