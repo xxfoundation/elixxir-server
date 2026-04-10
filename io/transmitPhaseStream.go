@@ -62,8 +62,12 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	currentPhase := r.GetCurrentPhase()
 
 	// This gets the streaming client which used to send slots
-	// using the recipient node id and the batch info header
-	// It's context must be canceled after receiving an ack
+	// using the recipient node id and the batch info header.
+	// Its context must be canceled after receiving an ack.
+	// Note: go vet flags a lock copy on `header` because protobuf messages
+	// embed a sync.Mutex in MessageState, but the elixxir/comms API takes
+	// BatchInfo by value. The copy is harmless in practice and the warning
+	// can only be silenced by changing the upstream comms signature.
 	streamClient, cancel, err := instance.GetNetwork().GetPostPhaseStreamClient(
 		recipient, header)
 	if err != nil {
