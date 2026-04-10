@@ -9,7 +9,7 @@ package node
 
 import (
 	"bytes"
-	"encoding/json"
+	json "github.com/goccy/go-json"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/xx_network/primitives/id"

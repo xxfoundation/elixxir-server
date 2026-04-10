@@ -10,7 +10,7 @@ package io
 // receiveMetrics.go contains the handler for receiveGetMeasure
 
 import (
-	"encoding/json"
+	json "github.com/goccy/go-json"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"

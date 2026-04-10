@@ -10,7 +10,7 @@ package io
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
+	json "github.com/goccy/go-json"
 	"fmt"
 	"gitlab.com/elixxir/primitives/states"
 	"io"

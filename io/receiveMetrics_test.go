@@ -8,7 +8,7 @@
 package io
 
 import (
-	"encoding/json"
+	json "github.com/goccy/go-json"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/server/internal"

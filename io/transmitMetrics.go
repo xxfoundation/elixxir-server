@@ -11,7 +11,7 @@
 package io
 
 import (
-	"encoding/json"
+	json "github.com/goccy/go-json"
 	"fmt"
 	"github.com/pkg/errors"
 	pb "gitlab.com/elixxir/comms/mixmessages"

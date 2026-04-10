@@ -33,6 +33,7 @@ require (
 	github.com/desertbit/timer v0.0.0-20180107155436-c41aec40b27f // indirect
 	github.com/elliotchance/orderedmap v1.4.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
