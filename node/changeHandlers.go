@@ -154,8 +154,10 @@ func NotStarted(instance *internal.Instance) error {
 		// Blocking call: Request ndf from permissioning
 		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
 		if err == nil {
-			// Check if an NDF is returned or if we have a valid cached NDF and connectivity is confirmed.
-			// If Updates are present, it implies connectivity verification passed on permissioning side.
+			// Check if an NDF is returned, or if a cached NDF is valid.
+			// Permissioning only includes Updates in the response after
+			// the node passes connectivity verification, so their
+			// presence confirms the cached NDF is usable this session.
 			hasNdf := permResponse != nil && permResponse.FullNDF != nil && len(permResponse.FullNDF.Ndf) > 0
 			hasCachedNdf := instance.GetNetworkStatus().GetFullNdf() != nil
 			hasUpdates := permResponse != nil && len(permResponse.Updates) > 0
