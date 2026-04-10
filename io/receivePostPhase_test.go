@@ -50,8 +50,8 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	mockPhase := testUtil.InitMockPhase(t)
 	responseMap := make(phase.ResponseMap)
 	responseMap[mockPhase.GetType().String()] =
-		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
-			[]phase.State{phase.Active}, mockPhase.GetType()})
+		phase.NewResponse(phase.ResponseDefinition{PhaseAtSource: mockPhase.GetType(),
+			ExpectedStates: []phase.State{phase.Active}, PhaseToExecute: mockPhase.GetType()})
 
 	r, err := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap, topology, topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
@@ -344,8 +344,8 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 
 	responseMap := make(phase.ResponseMap)
 	responseMap[mockPhase.GetType().String()] =
-		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
-			[]phase.State{phase.Active}, mockPhase.GetType()})
+		phase.NewResponse(phase.ResponseDefinition{PhaseAtSource: mockPhase.GetType(),
+			ExpectedStates: []phase.State{phase.Active}, PhaseToExecute: mockPhase.GetType()})
 
 	r, err := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap, topology, topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {

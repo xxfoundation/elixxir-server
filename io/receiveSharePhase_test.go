@@ -47,8 +47,8 @@ func TestStartSharePhase(t *testing.T) {
 	mockPhase := testUtil.InitMockPhase(t)
 	responseMap := make(phase.ResponseMap)
 	responseMap[phase.PrecompShare.String()] =
-		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
-			[]phase.State{phase.Active}, mockPhase.GetType()})
+		phase.NewResponse(phase.ResponseDefinition{PhaseAtSource: mockPhase.GetType(),
+			ExpectedStates: []phase.State{phase.Active}, PhaseToExecute: mockPhase.GetType()})
 
 	rnd, err := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
@@ -96,8 +96,8 @@ func TestReceiveStartSharePhase_BadAuth(t *testing.T) {
 	mockPhase := testUtil.InitMockPhase(t)
 	responseMap := make(phase.ResponseMap)
 	responseMap[phase.PrecompShare.String()] =
-		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
-			[]phase.State{phase.Active}, mockPhase.GetType()})
+		phase.NewResponse(phase.ResponseDefinition{PhaseAtSource: mockPhase.GetType(),
+			ExpectedStates: []phase.State{phase.Active}, PhaseToExecute: mockPhase.GetType()})
 
 	rnd, err := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
@@ -178,8 +178,8 @@ func TestSharePhaseRound(t *testing.T) {
 	mockPhase := testUtil.InitMockPhase(t)
 	responseMap := make(phase.ResponseMap)
 	responseMap[phase.PrecompShare.String()] =
-		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
-			[]phase.State{phase.Active}, mockPhase.GetType()})
+		phase.NewResponse(phase.ResponseDefinition{PhaseAtSource: mockPhase.GetType(),
+			ExpectedStates: []phase.State{phase.Active}, PhaseToExecute: mockPhase.GetType()})
 
 	// Build round and add it to the manager
 	rnd, err := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
@@ -267,8 +267,8 @@ func TestReceiveSharePhasePiece_BadAuth(t *testing.T) {
 	mockPhase := testUtil.InitMockPhase(t)
 	responseMap := make(phase.ResponseMap)
 	responseMap[phase.PrecompShare.String()] =
-		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
-			[]phase.State{phase.Active}, mockPhase.GetType()})
+		phase.NewResponse(phase.ResponseDefinition{PhaseAtSource: mockPhase.GetType(),
+			ExpectedStates: []phase.State{phase.Active}, PhaseToExecute: mockPhase.GetType()})
 
 	// Build round and add it to the manager
 	rnd, err := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)

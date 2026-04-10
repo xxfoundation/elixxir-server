@@ -138,9 +138,9 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	// Is this the correct key for the map?
 	responseMap[phase.PrecompGeneration.String()] =
 		phase.NewResponse(phase.ResponseDefinition{
-			phase.PrecompGeneration,
-			[]phase.State{phase.Active},
-			phase.PrecompGeneration,
+			PhaseAtSource:  phase.PrecompGeneration,
+			ExpectedStates: []phase.State{phase.Active},
+			PhaseToExecute: phase.PrecompGeneration,
 		})
 
 	myGrp := cyclic.NewGroup(pPrime, g)

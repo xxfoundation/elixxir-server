@@ -667,7 +667,7 @@ func makeMultiInstanceParams(numNodes, portStart int, grp *cyclic.Group, useGPU 
 
 		cryptoPrivRSAKey, _ := tls.LoadRSAPrivateKey(string(privKey))
 
-		def.PrivateKey = &rsa.PrivateKey{*cryptoPrivRSAKey}
+		def.PrivateKey = &rsa.PrivateKey{PrivateKey: *cryptoPrivRSAKey}
 
 		defLst = append(defLst, &def)
 	}
