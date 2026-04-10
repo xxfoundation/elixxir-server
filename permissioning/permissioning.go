@@ -452,8 +452,11 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 		// Extract the hash from the updated NDF (comms computes it during UpdateFullNdf)
 		newFullHash := instance.GetNetworkStatus().GetFullNdf().GetHash()
 
-		// Cache the full NDF
-		jww.DEBUG.Printf("Caching full NDF after successful update")
+		// Always update in-memory hash after successful NDF update so polls
+		// send the correct hash. Disk cache is best-effort below.
+		instance.SetCachedFullNdfHash(newFullHash)
+
+		// Cache the full NDF to disk
 		nodeSecret, err := instance.GetSecretManager().GetSecret(0)
 		if err != nil {
 			jww.WARN.Printf("Failed to get node secret for NDF caching: %+v", err)
@@ -465,20 +468,13 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 			stream.Close()
 			if err != nil {
 				jww.WARN.Printf("Failed to cache full NDF: %+v", err)
-				// Continue execution - cache failure is non-fatal
 			} else {
-				// Save the hash alongside the NDF
 				hashStream := instance.GetRngStreamGen().GetStream()
 				hashErr := storage.SaveNdfHashToCache(newFullHash, cachePath,
 					nodeSecret.Bytes(), hashStream)
 				hashStream.Close()
 				if hashErr != nil {
 					jww.WARN.Printf("Failed to cache full NDF hash: %+v", hashErr)
-				} else {
-					// Update server-level cached hash for future polls
-					instance.SetCachedFullNdfHash(newFullHash)
-					jww.DEBUG.Printf("Cached full NDF hash for future polls: %s",
-						base64.StdEncoding.EncodeToString(newFullHash))
 				}
 			}
 		}
@@ -515,8 +511,10 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 		// Extract the hash from the updated NDF (comms computes it during UpdatePartialNdf)
 		newPartialHash := instance.GetNetworkStatus().GetPartialNdf().GetHash()
 
-		// Cache the partial NDF
-		jww.DEBUG.Printf("Caching partial NDF after successful update")
+		// Always update in-memory hash after successful NDF update
+		instance.SetCachedPartialNdfHash(newPartialHash)
+
+		// Cache the partial NDF to disk
 		nodeSecret, err := instance.GetSecretManager().GetSecret(0)
 		if err != nil {
 			jww.WARN.Printf("Failed to get node secret for NDF caching: %+v", err)
@@ -528,20 +526,13 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 			stream.Close()
 			if err != nil {
 				jww.WARN.Printf("Failed to cache partial NDF: %+v", err)
-				// Continue execution - cache failure is non-fatal
 			} else {
-				// Save the hash alongside the NDF
 				hashStream := instance.GetRngStreamGen().GetStream()
 				hashErr := storage.SaveNdfHashToCache(newPartialHash, cachePath,
 					nodeSecret.Bytes(), hashStream)
 				hashStream.Close()
 				if hashErr != nil {
 					jww.WARN.Printf("Failed to cache partial NDF hash: %+v", hashErr)
-				} else {
-					// Update server-level cached hash for future polls
-					instance.SetCachedPartialNdfHash(newPartialHash)
-					jww.DEBUG.Printf("Cached partial NDF hash for future polls: %s",
-						base64.StdEncoding.EncodeToString(newPartialHash))
 				}
 			}
 		}
