@@ -459,15 +459,19 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 			jww.WARN.Printf("Failed to get node secret for NDF caching: %+v", err)
 		} else {
 			cachePath := filepath.Join(instance.GetDefinition().CacheDir, "full_ndf.json")
+			stream := instance.GetRngStreamGen().GetStream()
 			err = storage.SaveNdfToCache(permissioningResponse.FullNDF.Ndf,
-				cachePath, nodeSecret.Bytes(), instance.GetRngStreamGen().GetStream())
+				cachePath, nodeSecret.Bytes(), stream)
+			stream.Close()
 			if err != nil {
 				jww.WARN.Printf("Failed to cache full NDF: %+v", err)
 				// Continue execution - cache failure is non-fatal
 			} else {
 				// Save the hash alongside the NDF
+				hashStream := instance.GetRngStreamGen().GetStream()
 				hashErr := storage.SaveNdfHashToCache(newFullHash, cachePath,
-					nodeSecret.Bytes(), instance.GetRngStreamGen().GetStream())
+					nodeSecret.Bytes(), hashStream)
+				hashStream.Close()
 				if hashErr != nil {
 					jww.WARN.Printf("Failed to cache full NDF hash: %+v", hashErr)
 				} else {
@@ -518,15 +522,19 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 			jww.WARN.Printf("Failed to get node secret for NDF caching: %+v", err)
 		} else {
 			cachePath := filepath.Join(instance.GetDefinition().CacheDir, "partial_ndf.json")
+			stream := instance.GetRngStreamGen().GetStream()
 			err = storage.SaveNdfToCache(permissioningResponse.PartialNDF.Ndf,
-				cachePath, nodeSecret.Bytes(), instance.GetRngStreamGen().GetStream())
+				cachePath, nodeSecret.Bytes(), stream)
+			stream.Close()
 			if err != nil {
 				jww.WARN.Printf("Failed to cache partial NDF: %+v", err)
 				// Continue execution - cache failure is non-fatal
 			} else {
 				// Save the hash alongside the NDF
+				hashStream := instance.GetRngStreamGen().GetStream()
 				hashErr := storage.SaveNdfHashToCache(newPartialHash, cachePath,
-					nodeSecret.Bytes(), instance.GetRngStreamGen().GetStream())
+					nodeSecret.Bytes(), hashStream)
+				hashStream.Close()
 				if hashErr != nil {
 					jww.WARN.Printf("Failed to cache partial NDF hash: %+v", hashErr)
 				} else {
