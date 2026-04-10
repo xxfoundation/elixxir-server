@@ -566,24 +566,21 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 			return errors.Errorf("Could not update node connections: %+v", err)
 		}
 
-		// LAZY HOST REGISTRATION FIX:
-		// After the first successful poll that returns an NDF (connectivity verified),
-		// register hosts from the current NDF. This is done using atomic compare-and-swap
-		// to ensure it only happens once.
-		// By deferring host registration until after connectivity passes (when permissioning
-		// actually returns an NDF), we prevent network saturation during the vetting process
-		// that can cause checkConnectivity to timeout.
-		if instance.SetHostsRegistered() {
+		// Deferred host registration: register hosts from the NDF after
+		// connectivity is verified. Check-then-set (not CAS) so that a
+		// transient failure (e.g. nil NDF) allows retry on the next poll.
+		if !instance.IsHostsRegistered() {
 			fullNdf := instance.GetNetworkStatus().GetFullNdf()
 			if fullNdf != nil && fullNdf.Get() != nil {
 				ndfData := fullNdf.Get()
-				jww.INFO.Printf("First NDF received (connectivity verified) - registering hosts from current NDF (%d nodes)", len(ndfData.Nodes))
+				jww.INFO.Printf("Registering hosts from NDF (%d nodes)",
+					len(ndfData.Nodes))
 
 				registered := 0
 				for _, node := range ndfData.Nodes {
 					nodeId, err := id.Unmarshal(node.ID)
 					if err != nil {
-						jww.DEBUG.Printf("Could not unmarshal node ID: %v", err)
+						jww.WARN.Printf("Could not unmarshal node ID: %v", err)
 						continue
 					}
 
@@ -592,22 +589,22 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 						continue
 					}
 
-					// Add host to the network's host manager
-					_, err = instance.GetNetwork().AddHost(nodeId, node.Address, []byte(node.TlsCertificate),
+					_, err = instance.GetNetwork().AddHost(nodeId,
+						node.Address, []byte(node.TlsCertificate),
 						connect.GetDefaultHostParams())
 					if err != nil {
-						// Log but continue - some hosts might be unreachable or already added
-						jww.DEBUG.Printf("Could not add host %s at %s: %v",
+						jww.WARN.Printf("Could not add host %s at %s: %v",
 							nodeId, node.Address, err)
 						continue
 					}
 					registered++
 				}
 
-				jww.INFO.Printf("Successfully registered %d/%d hosts from NDF after connectivity verification",
+				jww.INFO.Printf("Registered %d/%d hosts from NDF",
 					registered, len(ndfData.Nodes))
+				instance.SetHostsRegistered()
 			} else {
-				jww.WARN.Printf("First NDF received but full NDF is not available for host registration")
+				jww.WARN.Printf("NDF not available for host registration, will retry next poll")
 			}
 		}
 	}
