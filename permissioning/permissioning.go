@@ -437,10 +437,9 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 // a list of node addresses found in the NDF to a separate file.
 func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
 	if permissioningResponse.FullNDF != nil {
-		// Log that cached hash doesn't match - new NDF is being downloaded
-		if instance.GetNetworkStatus().GetFullNdf() != nil {
-			oldHash := base64.StdEncoding.EncodeToString(instance.GetNetworkStatus().GetFullNdf().GetHash())
-			jww.INFO.Printf("Cached full NDF hash does not match current NDF - Downloading (cached: %s)", oldHash)
+		if cachedHash := instance.GetCachedFullNdfHash(); len(cachedHash) > 0 {
+			jww.INFO.Printf("Cached full NDF hash does not match current NDF - Downloading (cached: %s)",
+				base64.StdEncoding.EncodeToString(cachedHash))
 		}
 
 		// Update the full ndf
@@ -473,10 +472,9 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 	}
 
 	if permissioningResponse.PartialNDF != nil {
-		// Log that cached hash doesn't match - new partial NDF is being downloaded
-		if instance.GetNetworkStatus().GetPartialNdf() != nil {
-			oldHash := base64.StdEncoding.EncodeToString(instance.GetNetworkStatus().GetPartialNdf().GetHash())
-			jww.INFO.Printf("Cached partial NDF hash does not match current NDF - Downloading (cached: %s)", oldHash)
+		if cachedHash := instance.GetCachedPartialNdfHash(); len(cachedHash) > 0 {
+			jww.INFO.Printf("Cached partial NDF hash does not match current NDF - Downloading (cached: %s)",
+				base64.StdEncoding.EncodeToString(cachedHash))
 		}
 
 		// Update the partial ndf
